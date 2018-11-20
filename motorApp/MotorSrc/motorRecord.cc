@@ -474,6 +474,42 @@ static void callbackFunc(struct callback *pcb)
     }
 }
 
+static double accEGUfromVelo(motorRecord *pmr, double veloEGU)
+{
+    double vmin = pmr->vbas;
+    double vmax = fabs(veloEGU);
+    double acc;
+    /* ACCL or ACCS */
+    if (pmr->accu == motorACCSused_Accs)
+        acc = pmr->accs;
+    else
+        acc = vmax / pmr->accl;
+    /* Adjust if we have a valid base velocity and it is != 0.0 */
+    if ((vmax > vmin) && (vmin))
+        acc = vmax / (vmax - vmin);
+
+    return acc;
+}
+
+static void updateACCLfromACCSandVELO(motorRecord *pmr)
+{
+    double temp_dbl;
+    if (pmr->accu != motorACCSused_Accs)
+    {
+        pmr->accu = motorACCSused_Accs;
+        db_post_events(pmr, &pmr->accu, DBE_VAL_LOG);
+    }
+    if (pmr->accs > 0.0)
+    {
+        temp_dbl = pmr->velo / pmr->accs;
+        if (pmr->accl != temp_dbl)
+        {
+            pmr->accs = temp_dbl;
+            db_post_events(pmr, &pmr->accl, DBE_VAL_LOG);
+        }
+    }
+
+}
 
 /******************************************************************************
         enforceMinRetryDeadband()
@@ -859,7 +895,7 @@ static long postProcess(motorRecord * pmr)
 
             if (pmr->mip & MIP_JOG_STOP)
             {
-                double acc = (vel - vbase) > 0 ? ((vel - vbase)/ pmr->accl) : (vel / pmr->accl);
+                double acc = accEGUfromVelo(pmr, pmr->velo);
 
                 if (vel <= vbase)
                     vel = vbase + 1;
@@ -2190,7 +2226,7 @@ static RTN_STATUS do_work(motorRecord * pmr, CALLBACK_VALUE proc_ind)
             double newpos = pmr->dval / pmr->mres;      /* where to go     */
             double vbase = pmr->vbas / fabs(pmr->mres); /* base speed      */
             double vel = pmr->velo / fabs(pmr->mres);   /* normal speed    */
-            double acc = (vel - vbase) > 0 ? ((vel - vbase) / pmr->accl) : (vel / pmr->accl);     /* normal accel.   */
+            double acc = accEGUfromVelo(pmr, pmr->velo);
             /*
              * 'bpos' is one backlash distance away from 'newpos'.
              */
@@ -2596,6 +2632,10 @@ static long special(DBADDR *paddr, int after)
     case motorRecordVELO:
         range_check(pmr, &pmr->velo, pmr->vbas, pmr->vmax);
 
+        if (pmr->accu == motorACCSused_Accs)
+        {
+            updateACCLfromACCSandVELO(pmr);
+        }
         if ((pmr->urev != 0.0) && (pmr->s != (temp_dbl = pmr->velo / fabs_urev)))
         {
             pmr->s = temp_dbl;
@@ -2611,6 +2651,10 @@ static long special(DBADDR *paddr, int after)
         {
             pmr->velo = temp_dbl;
             db_post_events(pmr, &pmr->velo, DBE_VAL_LOG);
+        }
+        if (pmr->accu == motorACCSused_Accs)
+        {
+            updateACCLfromACCSandVELO(pmr);
         }
         break;
 
@@ -2639,10 +2683,24 @@ static long special(DBADDR *paddr, int after)
         /* new accl */
     case motorRecordACCL:
         if (pmr->accl <= 0.0)
-        {
             pmr->accl = 0.1;
-            db_post_events(pmr, &pmr->accl, DBE_VAL_LOG);
+        db_post_events(pmr, &pmr->accl, DBE_VAL_LOG);
+        if (pmr->accu != motorACCSused_Accl)
+        {
+            pmr->accu = motorACCSused_Accl;
+            db_post_events(pmr, &pmr->accu, DBE_VAL_LOG);
         }
+        temp_dbl = pmr->velo / pmr->accl;
+        if (pmr->accs != temp_dbl)
+        {
+            pmr->accs = temp_dbl;
+            db_post_events(pmr, &pmr->accs, DBE_VAL_LOG);
+        }
+        break;
+        /* new accs */
+    case motorRecordACCS:
+        db_post_events(pmr, &pmr->accs, DBE_VAL_LOG);
+        updateACCLfromACCSandVELO(pmr);
         break;
 
         /* new bacc */
