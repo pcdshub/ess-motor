@@ -1,0 +1,24 @@
+# default group
+* @pcdshub/motion-sme
+
+# language-specific group(s)
+## EPICS files
+*.archive @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.autosave @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.cmd @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.db @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.dbd @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.edl @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.ioc @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.proto @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.req @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.sub-arch @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.sub-req @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.substitutions @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.tpl-arch @pcdshub/epics-reviewers @pcdshub/motion-sme
+*.tpl-req @pcdshub/epics-reviewers @pcdshub/motion-sme
+RELEASE_SITE @pcdshub/epics-reviewers @pcdshub/motion-sme
+/configure/RELEASE @pcdshub/epics-reviewers @pcdshub/motion-sme
+
+# github folder holds administrative files
+.github/** @pcdshub/software-admin
